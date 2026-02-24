@@ -1,0 +1,307 @@
+{% extends 'quiz/base.html' %}
+
+{% block title %}Take Quiz - Quiz Generator{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* ===== QUIZ PAGE ENHANCED STYLES ===== */
+    
+    /* Quiz Subject Title - Premium visibility */
+    .quiz-subject-title {
+        color: #ffffff !important;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+    }
+    
+    /* Question Counter - Progress bar */
+    .quiz-progress-text {
+        color: #ffffff !important;
+        font-weight: 600;
+        letter-spacing: 0.8px;
+        font-size: 0.95rem;
+        text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    }
+    
+    /* Question Counter - Individual question card */
+    .question-counter {
+        color: #e2e8f0 !important;
+        font-weight: 600;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+        font-size: 0.85rem;
+        opacity: 0.95;
+    }
+    
+    /* Ensure progress bar text is visible */
+    .progress-bar {
+        color: #ffffff !important;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8 mx-auto">
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0 quiz-subject-title">
+                    <i class="fas fa-clipboard-check"></i> {{ quiz.subject }}
+                </h5>
+                <span class="badge bg-light text-dark">
+                    {{ quiz.difficulty }} | {{ quiz.number_of_questions }} Questions
+                </span>
+            </div>
+            <div class="card-body">
+                <!-- Timer Display -->
+                <div class="alert alert-info d-flex justify-content-between align-items-center mb-3">
+                    <span><i class="fas fa-clock"></i> Time Remaining for this Question:</span>
+                    <span id="timer" class="badge bg-danger fs-5">01:00</span>
+                </div>
+                
+                <!-- Progress -->
+                <div class="progress mb-3" style="height: 25px;">
+                    <div id="progressBar" class="progress-bar bg-success" role="progressbar" 
+                         style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
+                        <span class="quiz-progress-text">Question <span id="currentQ">1</span> of <span id="totalQ">{{ questions.count }}</span></span>
+                    </div>
+                </div>
+                
+                <form method="post" id="quizForm" action="{% url 'submit_quiz' quiz.id %}">
+                    {% csrf_token %}
+                    
+                    {% for question in questions %}
+                    <div class="question-card mb-4 p-3 border rounded" 
+                         id="question_{{ forloop.counter }}" 
+                         data-question-id="{{ question.id }}"
+                         style="{% if forloop.counter != 1 %}display: none;{% endif %}">
+                        <h6 class="question-counter mb-3">
+                            Question {{ forloop.counter }} of {{ questions.count }}
+                        </h6>
+                        
+                        <p class="question-text fw-bold mb-3">
+                            {{ question.question_text }}
+                        </p>
+                        
+                        <div class="options">
+                            <div class="form-check quiz-option" onclick="selectOption(this, '{{ question.id }}', 'A')">
+                                <input class="form-check-input" type="radio" 
+                                       name="question_{{ question.id }}" 
+                                       id="q{{ question.id }}_A" value="A">
+                                <label class="form-check-label" for="q{{ question.id }}_A">
+                                    <strong>A.</strong> {{ question.option_a }}
+                                </label>
+                            </div>
+                            
+                            <div class="form-check quiz-option" onclick="selectOption(this, '{{ question.id }}', 'B')">
+                                <input class="form-check-input" type="radio" 
+                                       name="question_{{ question.id }}" 
+                                       id="q{{ question.id }}_B" value="B">
+                                <label class="form-check-label" for="q{{ question.id }}_B">
+                                    <strong>B.</strong> {{ question.option_b }}
+                                </label>
+                            </div>
+                            
+                            <div class="form-check quiz-option" onclick="selectOption(this, '{{ question.id }}', 'C')">
+                                <input class="form-check-input" type="radio" 
+                                       name="question_{{ question.id }}" 
+                                       id="q{{ question.id }}_C" value="C">
+                                <label class="form-check-label" for="q{{ question.id }}_C">
+                                    <strong>C.</strong> {{ question.option_c }}
+                                </label>
+                            </div>
+                            
+                            <div class="form-check quiz-option" onclick="selectOption(this, '{{ question.id }}', 'D')">
+                                <input class="form-check-input" type="radio" 
+                                       name="question_{{ question.id }}" 
+                                       id="q{{ question.id }}_D" value="D">
+                                <label class="form-check-label" for="q{{ question.id }}_D">
+                                    <strong>D.</strong> {{ question.option_d }}
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between mt-3">
+                            {% if forloop.counter > 1 %}
+                            <button type="button" class="btn btn-secondary" onclick="prevQuestion({{ forloop.counter }})">
+                                <i class="fas fa-arrow-left"></i> Previous
+                            </button>
+                            {% else %}
+                            <div></div>
+                            {% endif %}
+                            
+                            {% if forloop.counter < questions.count %}
+                            <button type="button" class="btn btn-primary" onclick="nextQuestion({{ forloop.counter }})">
+                                Next <i class="fas fa-arrow-right"></i>
+                            </button>
+                            {% else %}
+                            <button type="button" class="btn btn-success" onclick="submitQuiz()">
+                                <i class="fas fa-check-circle"></i> Submit Quiz
+                            </button>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Timer configuration
+    const QUESTION_TIME = 60; // 60 seconds per question
+    let timeLeft = QUESTION_TIME;
+    let timerInterval = null;
+    let currentQuestion = 1;
+    const totalQuestions = {{ questions.count }};
+    
+    // Initialize timer on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        startTimer();
+    });
+    
+    function startTimer() {
+        timeLeft = QUESTION_TIME;
+        updateTimerDisplay();
+        
+        if (timerInterval) {
+            clearInterval(timerInterval);
+        }
+        
+        timerInterval = setInterval(function() {
+            timeLeft--;
+            updateTimerDisplay();
+            
+            if (timeLeft <= 0) {
+                // Time's up - auto-submit current question answer (move to next)
+                clearInterval(timerInterval);
+                autoSubmitCurrentQuestion();
+            }
+        }, 1000);
+    }
+    
+    function updateTimerDisplay() {
+        const minutes = Math.floor(timeLeft / 60);
+        const seconds = timeLeft % 60;
+        const display = String(minutes).padStart(2, '0') + ':' + String(seconds).padStart(2, '0');
+        
+        const timerElement = document.getElementById('timer');
+        timerElement.textContent = display;
+        
+        // Change color based on time remaining
+        if (timeLeft <= 10) {
+            timerElement.classList.remove('bg-warning');
+            timerElement.classList.add('bg-danger');
+        } else if (timeLeft <= 30) {
+            timerElement.classList.remove('bg-danger');
+            timerElement.classList.add('bg-warning');
+        }
+    }
+    
+    function autoSubmitCurrentQuestion() {
+        // Save current answer and move to next question
+        if (currentQuestion < totalQuestions) {
+            nextQuestion(currentQuestion);
+        } else {
+            submitQuiz();
+        }
+    }
+    
+    function nextQuestion(currentQ) {
+        // Hide current question
+        document.getElementById('question_' + currentQ).style.display = 'none';
+        
+        // Show next question
+        currentQuestion = currentQ + 1;
+        document.getElementById('question_' + currentQuestion).style.display = 'block';
+        
+        // Update progress bar
+        updateProgressBar();
+        
+        // Reset timer for new question
+        startTimer();
+    }
+    
+    function prevQuestion(currentQ) {
+        // Hide current question
+        document.getElementById('question_' + currentQ).style.display = 'none';
+        
+        // Show previous question
+        currentQuestion = currentQ - 1;
+        document.getElementById('question_' + currentQuestion).style.display = 'block';
+        
+        // Update progress bar
+        updateProgressBar();
+        
+        // Reset timer for new question
+        startTimer();
+    }
+    
+    function updateProgressBar() {
+        const progress = (currentQuestion / totalQuestions) * 100;
+        document.getElementById('progressBar').style.width = progress + '%';
+        document.getElementById('progressBar').setAttribute('aria-valuenow', progress);
+        document.getElementById('currentQ').textContent = currentQuestion;
+    }
+    
+    function selectOption(element, questionId, option) {
+        // Remove selected class from all options in this question
+        const questionCard = element.closest('.question-card');
+        questionCard.querySelectorAll('.quiz-option').forEach(opt => {
+            opt.classList.remove('selected');
+        });
+        
+        // Add selected class to clicked option
+        element.classList.add('selected');
+        
+        // Check the radio button
+        const radio = element.querySelector('input[type="radio"]');
+        radio.checked = true;
+    }
+    
+    function submitQuiz() {
+        // Stop the timer
+        if (timerInterval) {
+            clearInterval(timerInterval);
+        }
+        
+        // Check if all questions are answered
+        let unanswered = 0;
+        const questionCards = document.querySelectorAll('.question-card');
+        questionCards.forEach(function(card) {
+            const questionId = card.dataset.questionId;
+            const selected = document.querySelector('input[name="question_' + questionId + '"]:checked');
+            if (!selected) {
+                unanswered++;
+            }
+        });
+        
+        if (unanswered > 0) {
+            if (!confirm('You have ' + unanswered + ' unanswered question(s). Are you sure you want to submit?')) {
+                // Restart timer if user cancels
+                startTimer();
+                return;
+            }
+        }
+        
+        // Submit the form
+        document.getElementById('quizForm').submit();
+    }
+    
+    // Keyboard navigation
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' && e.target.tagName === 'INPUT') {
+            e.preventDefault();
+            if (currentQuestion < totalQuestions) {
+                nextQuestion(currentQuestion);
+            }
+        }
+    });
+</script>
+{% endblock %}
