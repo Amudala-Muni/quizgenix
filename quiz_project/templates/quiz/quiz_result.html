@@ -1,0 +1,201 @@
+{% extends 'quiz/base.html' %}
+
+{% block title %}Quiz Result - Quiz Generator{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-10">
+        <div class="card text-center mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="fas fa-trophy"></i> Quiz Completed!</h5>
+            </div>
+            <div class="card-body">
+                <div class="result-display my-4">
+                    <div class="score-circle mx-auto mb-4" 
+                         style="width: 150px; height: 150px; border-radius: 50%; 
+                                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                                display: flex; align-items: center; justify-content: center;
+                                color: white; font-size: 3rem; font-weight: bold;">
+                        {{ percentage }}%
+                    </div>
+                    
+                    <h3 class="mb-3">{{ quiz.subject }}</h3>
+                    
+                    <div class="row justify-content-center">
+                        <div class="col-md-8">
+                            <div class="card bg-light">
+                                <div class="card-body">
+                                    <h4>Your Score</h4>
+                                    <div class="row mt-3">
+                                        <div class="col-4">
+                                            <div class="stat-box">
+                                                <h2 class="text-primary">{{ score }}</h2>
+                                                <p class="text-muted mb-0">Total Questions</p>
+                                            </div>
+                                        </div>
+                                        <div class="col-4">
+                                            <div class="stat-box">
+                                                <h2 class="text-success">{{ correct }}</h2>
+                                                <p class="text-muted mb-0">Correct Answers</p>
+                                            </div>
+                                        </div>
+                                        <div class="col-4">
+                                            <div class="stat-box">
+                                                <h2 class="text-danger">{{ wrong }}</h2>
+                                                <p class="text-muted mb-0">Wrong Answers</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <p class="text-muted mt-3">
+                                        {% if percentage >= 90 %}
+                                            Excellent! 🎉 Outstanding performance!
+                                        {% elif percentage >= 70 %}
+                                            Great job! 👍 Well done!
+                                        {% elif percentage >= 50 %}
+                                            Good effort! 💪 Keep practicing!
+                                        {% else %}
+                                            Keep practicing! 📚 You'll improve!
+                                        {% endif %}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- AI Feedback Section -->
+        {% if result %}
+        <div class="card mb-4">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0"><i class="fas fa-robot"></i> AI Performance Analysis</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <!-- Strength Analysis -->
+                    <div class="col-md-4 mb-3">
+                        <div class="card h-100 border-success">
+                            <div class="card-header bg-success text-white">
+                                <h6 class="mb-0"><i class="fas fa-thumbs-up"></i> Strengths</h6>
+                            </div>
+                            <div class="card-body">
+                                <p class="card-text">{{ result.strength_analysis|linebreaks }}</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Weakness Analysis -->
+                    <div class="col-md-4 mb-3">
+                        <div class="card h-100 border-warning">
+                            <div class="card-header bg-warning text-dark">
+                                <h6 class="mb-0"><i class="fas fa-thumbs-down"></i> Weaknesses</h6>
+                            </div>
+                            <div class="card-body">
+                                <p class="card-text">{{ result.weakness_analysis|linebreaks }}</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Suggestions -->
+                    <div class="col-md-4 mb-3">
+                        <div class="card h-100 border-primary">
+                            <div class="card-header bg-primary text-white">
+                                <h6 class="mb-0"><i class="fas fa-lightbulb"></i> Suggestions</h6>
+                            </div>
+                            <div class="card-body">
+                                <p class="card-text">{{ result.suggestions|linebreaks }}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        
+        <!-- Detailed Question Analysis Section -->
+        <div class="card mb-4">
+            <div class="card-header bg-dark text-white">
+                <h5 class="mb-0"><i class="fas fa-list-alt"></i> Detailed Question Analysis</h5>
+            </div>
+            <div class="card-body p-0">
+                {% for detail in detailed_results %}
+                <div class="question-analysis p-4 border-bottom {% if detail.is_correct %}border-success{% else %}border-danger{% endif %}">
+                    <div class="question-header mb-3">
+                        <span class="badge bg-secondary fs-6 me-2">Question {{ detail.question_number }}</span>
+                        {% if detail.is_correct %}
+                            <span class="badge bg-success"><i class="fas fa-check"></i> Correct</span>
+                        {% else %}
+                            <span class="badge bg-danger"><i class="fas fa-times"></i> Incorrect</span>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="question-text mb-3">
+                        <strong>{{ detail.question_text }}</strong>
+                    </div>
+                    
+                    <div class="answers-section">
+                        <div class="row">
+                            <div class="col-md-6 mb-2">
+                                <div class="card {% if not detail.is_correct and detail.selected_answer %}border-danger{% else %}border-secondary{% endif %}">
+                                    <div class="card-header bg-light">
+                                        <strong>Your Answer:</strong>
+                                        {% if detail.selected_answer %}
+                                            <span class="text-primary">{{ detail.selected_answer }}</span> - {{ detail.selected_text }}
+                                        {% else %}
+                                            <span class="text-muted">No answer selected</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-2">
+                                <div class="card border-success">
+                                    <div class="card-header bg-success bg-opacity-10">
+                                        <strong>Correct Answer:</strong>
+                                        <span class="text-success">{{ detail.correct_answer }}</span> - {{ detail.correct_text }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    {% if detail.explanation %}
+                    <div class="explanation-section mt-3">
+                        <div class="card border-info">
+                            <div class="card-header bg-info bg-opacity-10">
+                                <strong><i class="fas fa-lightbulb text-info"></i> Explanation:</strong>
+                            </div>
+                            <div class="card-body">
+                                <p class="mb-0">{{ detail.explanation|linebreaks }}</p>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        
+        <!-- Action Buttons -->
+        <div class="d-grid gap-2 mt-4">
+            <div class="row">
+                <div class="col-md-4 mb-2">
+                    <a href="{% url 'take_quiz' quiz.id %}" class="btn btn-primary btn-lg w-100">
+                        <i class="fas fa-redo"></i> Retake Quiz
+                    </a>
+                </div>
+                <div class="col-md-4 mb-2">
+                    <a href="{% url 'quiz_detail' quiz.id %}" class="btn btn-info btn-lg w-100">
+                        <i class="fas fa-eye"></i> View Details
+                    </a>
+                </div>
+                <div class="col-md-4 mb-2">
+                    <a href="{% url 'dashboard' %}" class="btn btn-secondary btn-lg w-100">
+                        <i class="fas fa-home"></i> Back to Dashboard
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
