@@ -12,10 +12,11 @@ from django.views import View
 from django.contrib.auth import authenticate, login, logout
 from django.db.models.signals import post_save
 from django.dispatch import receiver
+import os
 
 from .models import PDFDocument, Quiz, Question, UserAnswer, Result, UserProfile
 from .pdf_utils import extract_text_from_pdf
-from .ai_services import generate_quiz_questions, generate_performance_feedback, APIKeyError
+from .ai_services import generate_quiz_questions, generate_performance_feedback, APIKeyError, test_ai_connection
 import logging
 
 logger = logging.getLogger(__name__)
@@ -37,9 +38,27 @@ def landing_page(request):
     return render(request, 'quiz/home.html')
 
 
+def test_ai_service(request):
+    """
+    Test view to verify AI service configuration.
+    Access this at /test-ai/ to check if Gemini API is working.
+    """
+    result = test_ai_connection()
+    
+    if request.headers.get('Accept') == 'application/json' or request.GET.get('format') == 'json':
+        return JsonResponse(result)
+    
+    if result['configured']:
+        messages.success(request, result['message'])
+    else:
+        messages.error(request, result['message'])
+    
+    return redirect('landing_page')
+
+
 def about(request):
     """About page view"""
-    return render(request, 'quiz/about.html')
+    return render(request, 'quiz/pages/about.html')
 
 
 def contact(request):
@@ -58,7 +77,7 @@ def contact(request):
         else:
             messages.error(request, 'Please fill in all fields.')
     
-    return render(request, 'quiz/contact.html')
+    return render(request, 'quiz/pages/contact.html')
 
 
 def user_login(request):
@@ -115,7 +134,7 @@ def user_login(request):
             messages.error(request, 'Invalid username or password')
             return redirect('user_login')
     
-    return render(request, 'quiz/login.html')
+    return render(request, 'quiz/auth/login.html')
 
 
 def admin_login(request):
@@ -171,7 +190,7 @@ def admin_login(request):
             messages.error(request, 'Invalid username or password')
             return redirect('admin_login')
     
-    return render(request, 'quiz/admin_login.html')
+    return render(request, 'quiz/admin_panel/admin_login.html')
 
 
 def admin_logout(request):
@@ -201,7 +220,7 @@ def user_logout(request):
 
 
 def register(request):
-    """User registration view with name field"""
+    """User registration view with name field and optional profile image"""
     if request.user.is_authenticated:
         return redirect('dashboard')
     
@@ -211,6 +230,7 @@ def register(request):
         username = request.POST.get('username')
         password1 = request.POST.get('password1')
         password2 = request.POST.get('password2')
+        profile_image = request.FILES.get('profile_image')
         
         # Validate inputs
         if not all([name, email, username, password1, password2]):
@@ -229,6 +249,23 @@ def register(request):
             messages.error(request, 'Email already exists')
             return redirect('register')
         
+        # Validate profile image if uploaded
+        if profile_image:
+            # Validate file extension
+            allowed_extensions = ['.jpg', '.jpeg', '.png']
+            import os
+            ext = os.path.splitext(profile_image.name)[1].lower()
+            
+            if ext not in allowed_extensions:
+                messages.error(request, 'Invalid file format. Only .jpg, .jpeg, and .png files are allowed.')
+                return redirect('register')
+            
+            # Validate file size (2MB = 2 * 1024 * 1024 bytes)
+            max_size = 2 * 1024 * 1024
+            if profile_image.size > max_size:
+                messages.error(request, 'File size exceeds 2MB limit. Please upload a smaller image.')
+                return redirect('register')
+        
         # Create user (active by default - auto-approved on registration)
         user = User.objects.create_user(
             username=username,
@@ -237,16 +274,21 @@ def register(request):
             is_active=True  # User is active immediately after registration
         )
         
-        # Create or update user profile with name and status
+        # Create or update user profile with name, status, and profile image
         profile, created = UserProfile.objects.get_or_create(user=user)
         profile.name = name
         profile.status = 'Approved'  # Auto-approve on registration
+        
+        # Save profile image if uploaded
+        if profile_image:
+            profile.profile_image = profile_image
+        
         profile.save()
         
         messages.success(request, 'Registration Successful! You can now log in with your credentials.')
         return redirect('user_login')
     
-    return render(request, 'quiz/register.html')
+    return render(request, 'quiz/auth/register.html')
 
 
 @login_required
@@ -754,7 +796,7 @@ def admin_dashboard(request):
         'total_users': users.count(),
         'total_quizzes': all_quizzes.count(),
     }
-    return render(request, 'quiz/admin_dashboard.html', context)
+    return render(request, 'quiz/admin_panel/admin_dashboard.html', context)
 
 
 @login_required

@@ -10,6 +10,9 @@ urlpatterns = [
     path('', views.landing_page, name='landing'),
     path('home/', views.landing_page, name='home'),
     
+    # AI Service Test
+    path('test-ai/', views.test_ai_service, name='test_ai'),
+    
     # Static pages
     path('about/', views.about, name='about'),
     path('contact/', views.contact, name='contact'),

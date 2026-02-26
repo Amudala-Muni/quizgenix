@@ -120,6 +120,50 @@ def generate_quiz_questions(pdf_text: str, subject: str, difficulty: str, num_qu
     return generator.generate_questions(pdf_text, subject, difficulty, num_questions)
 
 
+def test_ai_connection() -> Dict[str, Any]:
+    """
+    Test if the AI service is properly configured and connected.
+    Returns a dictionary with status and message.
+    """
+    try:
+        # Get API key
+        api_key = getattr(settings, 'GOOGLE_API_KEY', None) or os.getenv('GOOGLE_API_KEY')
+        
+        if not api_key:
+            return {
+                'status': 'error',
+                'message': 'API key not found. Please set GOOGLE_API_KEY in .env file.',
+                'configured': False
+            }
+        
+        # Try to initialize the model
+        test_llm = ChatGoogleGenerativeAI(
+            model="gemini-2.5-flash",
+            google_api_key=api_key,
+            temperature=0.3,
+            convert_system_message_to_human=True
+        )
+        
+        # Send a simple test prompt
+        test_response = test_llm.invoke("Say 'AI Connection Successful' if you can read this.")
+        
+        # Extract content
+        response_text = test_response.content if hasattr(test_response, 'content') else str(test_response)
+        
+        return {
+            'status': 'success',
+            'message': f'AI service connected successfully! Response: {response_text[:50]}...',
+            'configured': True
+        }
+        
+    except Exception as e:
+        return {
+            'status': 'error',
+            'message': f'AI service connection failed: {str(e)}',
+            'configured': False
+        }
+
+
 class PerformanceAnalyzer:
     """Performance Analyzer using LangChain and Gemini AI for advanced evaluation"""
     

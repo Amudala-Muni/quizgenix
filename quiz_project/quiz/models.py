@@ -17,11 +17,22 @@ class UserProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
     name = models.CharField(max_length=255, blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='Waiting')
+    profile_image = models.ImageField(
+        upload_to='profile_images/',
+        default='profile_images/default.png',
+        blank=True,
+        null=True
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
     def __str__(self):
         return f"{self.user.username} - {self.status}"
+    
+    @property
+    def has_custom_image(self):
+        """Check if user has uploaded a custom profile image"""
+        return bool(self.profile_image and self.profile_image.name != 'profile_images/default.png')
 
 
 class PDFDocument(models.Model):
